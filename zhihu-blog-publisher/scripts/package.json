@@ -1,0 +1,20 @@
+{
+  "name": "zhihu-blog-publisher-scripts",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Conversion + publishing scripts for the zhihu-blog-publisher skill",
+  "type": "commonjs",
+  "scripts": {
+    "prep": "node prepare.js",
+    "convert": "node convert.js",
+    "publish": "node publish.js"
+  },
+  "dependencies": {
+    "mathjax-full": "^3.2.2",
+    "marked": "^12.0.0",
+    "sharp": "^0.33.0"
+  },
+  "optionalDependencies": {
+    "playwright": "^1.45.0"
+  }
+}

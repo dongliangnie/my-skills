@@ -1,8 +1,14 @@
+# Python
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
 .DS_Store
 *Zone.Identifier
+
+# Node
+node_modules/
+
+# Skill runtime data / build artifacts
+zhihu_profile/
 .tmp_arxiv/
 *.aux
 *.log
