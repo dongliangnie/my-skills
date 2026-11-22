@@ -174,7 +174,14 @@ async function resolveLocal(src, mdDir, imagesDir, idx) {
       else if (zoom && zoom > 0) targetW = Math.round(naturalW * zoom);
       // safety cap; never upscale beyond natural when we are shrinking intent
       if (targetW && targetW > naturalW && !args.profile) targetW = naturalW;
-      if (targetW && targetW > args.maxWidth) targetW = args.maxWidth;
+      // Global cap applies to EVERY image (oversized un-tagged images like an
+      // 8633px panorama would otherwise upload raw), BUT an explicit zoom/width
+      // tag is authoritative: cap its computed target, don't override it with
+      // the natural-width cap. This preserves intentional small-image scaling.
+      if (args.maxWidth && !args.profile) {
+        if (targetW) { if (targetW > args.maxWidth) targetW = args.maxWidth; }
+        else if (naturalW > args.maxWidth) targetW = args.maxWidth;
+      }
       displayW = targetW;
       const uploadFile = path.join(imagesDir, `img${slot}.png`);
       if (targetW && targetW < naturalW && !args.profile) {

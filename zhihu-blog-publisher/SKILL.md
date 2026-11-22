@@ -13,7 +13,7 @@ description: 把本地 Markdown 文章（含公式、表格、配图）发布到
 
 ### Step 0 — 环境准备
 - Playwright 与 sharp 装在 `scripts/node_modules`，**脚本从 scripts/ 目录运行时无需设置 NODE_PATH**。
-- Node 建议 18+（本 skill 在 Node 22 上验证）。
+- Node 18+（验证于 Node 22）。Windows 上若用 WorkBuddy，走其受管 Node 即可；用 `node -v` 确认版本。
 - 持久化登录 profile 默认在 `<skill>/zhihu_profile`（约 120MB，**不要塞进 skill 包**）。首次运行若未登录，脚本会停在知乎扫码页，让用户扫码；之后复用同一目录即免登录。
 - 若用户想用现成 profile（例如别处已登录的目录），用 `--profile <dir>` 指定。
 
@@ -24,29 +24,32 @@ description: 把本地 Markdown 文章（含公式、表格、配图）发布到
 | 登录 profile 默认 | `<skill>/zhihu_profile` | `<skill>/zhihu_profile`（各自独立，首次需扫码） |
 
 - 跨平台覆盖：**环境变量** `ZHIHU_CHANNEL`（`msedge`/`chromium`/`chrome`）、`ZHIHU_PROFILE`（profile 目录）。`publish.js` 另有 `--profile <dir>` 命令行参数（优先级最高）。
-- WSL 首次使用装 Chromium 一次：
+- Linux / WSL 首次使用装 Chromium 一次（把技能目录换成你的实际安装路径，例如 Claude Code 的 `~/.claude/skills/zhihu-blog-publisher`）：
   ```bash
-  cd ~/.claude/skills/zhihu-blog-publisher/scripts
+  cd <skill 安装目录>/scripts
   npm install                      # 若 package.json 的 prepare 已改名 prep，这里应正常结束
   npx playwright install chromium   # 下载 Linux 版 Chromium
   # 若缺系统库：npx playwright install-deps chromium（需 sudo）
   ```
-- WSLg 提供 `DISPLAY`，`headless:false` 可直接弹出浏览器扫码。**不要把 Windows 的 node_modules 复制进 WSL**（sharp/playwright 原生二进制是平台相关的），在 WSL 内重新 `npm install`。
-- profile 目录可跨系统共用（同一知乎登录态），但因体积大且锁定文件，建议 Windows / WSL 各用各的：Windows 侧可用 `--profile "C:/.../zhihu_profile"`，WSL 侧用默认 `~/.claude/skills/zhihu-blog-publisher/zhihu_profile`。
+- WSLg / 桌面 Linux 提供 `DISPLAY`，`headless:false` 可直接弹出浏览器扫码。**不要把 Windows 的 node_modules 复制进 WSL**（sharp/playwright 原生二进制是平台相关的），在 WSL 内重新 `npm install`。
+- profile 目录可跨系统共用（同一知乎登录态），但因体积大且锁定文件，建议 Windows / WSL 各用各的：Windows 侧可用 `--profile "<某处>/zhihu_profile"`，Linux / WSL 侧用默认的 `<skill 安装目录>/zhihu_profile`。
 
 ### Step 1 — 预处理：保留图片缩放 + 下载图片
 ```bash
-cd ~/.claude/skills/zhihu-blog-publisher/scripts
-node prepare.js "<input.md>" --out "<bundle_dir>" [--title "文章标题"]
+cd <skill 安装目录>/scripts
+node prepare.js "<input.md>" --out "<bundle_dir>" [--title "文章标题"] [--max-width 1600]
 ```
 脚本会：
 1. 按出现顺序解析所有图片：`![alt](url)` 与 `<img src="..." style="zoom:33%">` 都支持；
 2. 下载远程图 / 复制本地图到 `<bundle>/images/`；
-3. **按 `zoom:NN%` 或 `width:NNpx` 把图片物理缩放到目标显示宽度**（zoom=33% 且原图 1547px → 缩到 511px），把缩放"烘焙"进像素——这是小图不被放大的关键；无缩放标注的图保留原尺寸；
-4. 生成 `body_noimg.md`：每张图替换为 `[[IMG_n]]` 占位符，公式 `$...$` 原样保留；
-5. 生成 `manifest.json`：slot → 本地缩放图路径、zoom、原始/显示尺寸的映射。
+3. **按 `zoom:NN%` 或 `width:NNpx` 把图片物理缩放到目标显示宽度**（zoom=33% 且原图 1547px → 缩到 511px），把缩放"烘焙"进像素——这是小图不被放大的关键；带显式 zoom/width 的图以该值为准（即使超过 max-width 也不覆盖，保住"故意缩小"的意图）；
+4. **`--max-width`（默认 1600）是全局上限，作用于每一张图**：没有 zoom/width 标注的超大图（如 8633px 宽的全景图）会被压到上限，避免原尺寸上传；`--profile` 模式会跳过所有缩放。
+5. 生成 `body_noimg.md`：每张图替换为 `[[IMG_n]]` 占位符，公式 `$...$` 原样保留；
+6. 生成 `manifest.json`：slot → 本地缩放图路径、zoom、原始/显示尺寸的映射。
 
-运行后核对控制台 `PREPARE_SUMMARY`：`failed` 应为 0，`resized` 应等于带缩放标注的图数。
+运行后核对控制台 `PREPARE_SUMMARY`：`failed` 应为 0；逐行确认带 zoom 的图 display 值符合预期（如 zoom:25% 的 1921px 图 → 480px），超大无标注图 → 1600px。
+
+**图片居中无需额外处理**：知乎发布后会把每张图包进 `<figure>` 并自动水平居中（含小于栏宽的图），已实测，不要为了居中往正文注入 HTML/CSS（Draft.js 不会持久保留，还可能破坏编辑器）。
 
 ### Step 2 — 发布：填标题 + 粘正文 + 传图
 ```bash
