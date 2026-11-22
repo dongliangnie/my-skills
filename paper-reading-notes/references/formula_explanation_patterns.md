@@ -71,3 +71,6 @@
 - 每个细节回原文（正文 + **补充材料**）核对；公式推导常只在补充里。
 - 原文没说的写"论文只写 X，未指定 Y，按惯例理解为 Z"，**不杜撰**。
 - 补充材料公式常用 A/B/C 前缀编号（如 R² 定义 Eq. A2、归因泰勒 Eq. B1），别照搬正文编号。
+- **术语按论文用词，别套通用叫法**：如 Fast-WAM/RelayWAM 主干是 MoT（Mixture-of-Transformers）**共享自注意力 + 结构化掩码**，动作读视觉叫 `action attention`，**不要写成 cross-attention**；论文里的 cross-attention 专指新增 transition space 的 readout。写之前 grep 源码确认作者怎么称呼，用户会纠正术语错误。
+- **掩码/注意力要分清 token 类别，别统称「视频」**：Fast-WAM 掩码把 token 分三组——①首帧干净 latent（shared visual anchor）、②未来帧带噪 latent（仅训练视频建模）、③action。规则：action 能看①③但不能看②（防未来泄漏、训推一致）；注意力式里的 $V^v$ 是 "current-frame video tokens"=①首帧锚点。若笼统写「动作可看视频」会和「动作看不见未来视频」自相矛盾。描述前先确认是哪类 token。
+- **画架构图/讲输入时，逐路核对每个条件的精确定义，别把不同输入流并成一路**：如 RelayWAM 的条件 $\mathbf{C}=[\mathbf{C}^{\mathrm{lang}};\mathbf{C}^{\mathrm{state}}]$ 只含指令（text encoder 投影）和本体状态（MLP + joint-index embedding），**不含相机图像经 VAE 得到的 latent**——后者走的是 Video DiT 的蓝色视觉通路，通过视觉 K/V 单独进入注意力。写「哪几路汇成 C」前必须 grep 源码里 $\mathbf{C}$ 的定义式确认成分，用户会纠正这类混淆。

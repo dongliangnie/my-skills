@@ -28,12 +28,18 @@
 - 矢量 PDF → PyMuPDF 300 DPI，`alpha=False`；`figures/` 输出名统一 `fig1_xxx.png` 顺序编号。
 - **文件名一致性**（高频错误）：笔记里的 `figures/xxx.png` 必须与脚本输出逐字一致。曾 `fig13_baseline_comp` vs 实际 `fig13_baseline_compare` 不匹配 → 产出后逐一核对（grep 笔记里的图片引用，对照 `ls figures/`）。
 - 脚本里对 `MISSING` 的源要回头查路径（子目录大小写、扩展名）。
+- **实验结果表格截原文（用户硬性要求，别再用 Markdown 表格重排）**：
+  - 大表常被作者编译成独立 PDF（`tables/*.pdf`）→ 当矢量图 300 DPI 渲染。
+  - 表格直接排在正文里 → 从论文 PDF 定位所在页裁剪：`page.search_for("Table 1")` 找表题，`page.get_pixmap(matrix=mat, clip=rect)` 裁剪；clip 给不准就整页截。
+  - **截完必须目视检查**表格完整、未被分页切断（双栏论文表常跨页）；不放心就用整页截图。
+  - 编译脚本 `render_figures.py` 有 `TABLE_PDF`（独立表 PDF）与 `TABLE_PAGES`（从论文 PDF 裁剪）+ `locate_table()` 助手可用。
+  - 源码 `tables/*.tex` 只用来读懂表格、写对解读文字，绝不是呈现形式。
 
 ## Step 4-5 写作
 
 - "要求同上" = 只 MD；删掉 HTML 和 build 脚本，别留半成品。
 - 配图 6–15 张，每张承担一个论点，别全贴。
-- 表格用 Markdown 重排并注明"据 Table N 重排"，不直接贴图（除非表格本身就是图）。
+- **实验结果表格 = 原文截图，不重排**：结果/消融/对比表一律渲染成图插入并注明 Table N；文字只做解读。**不要**用 `| a | b |` 自创 Markdown 表格呈现实验数据（用户明确纠正过这点）。仅"为讲解自制"的演进/关系对照表（非论文原表）才用 Markdown 表格并注明"整理自……"。
 
 ## Step 6 公式深讲
 
