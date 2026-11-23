@@ -43,13 +43,13 @@ node prepare.js "<input.md>" --out "<bundle_dir>" [--title "文章标题"] [--ma
 1. 按出现顺序解析所有图片：`![alt](url)` 与 `<img src="..." style="zoom:33%">` 都支持；
 2. 下载远程图 / 复制本地图到 `<bundle>/images/`；
 3. **按 `zoom:NN%` 或 `width:NNpx` 把图片物理缩放到目标显示宽度**（zoom=33% 且原图 1547px → 缩到 511px），把缩放"烘焙"进像素——这是小图不被放大的关键；带显式 zoom/width 的图以该值为准（即使超过 max-width 也不覆盖，保住"故意缩小"的意图）；
-4. **`--max-width`（默认 1600）是全局上限，作用于每一张图**：没有 zoom/width 标注的超大图（如 8633px 宽的全景图）会被压到上限，避免原尺寸上传；`--profile` 模式会跳过所有缩放。
+4. **`--max-width`（默认 1600）是全局上限，作用于每一张图**：没有 zoom/width 标注的超大图（如 8633px 宽的全景图）会被压到上限，避免原尺寸上传。这是"适当缩放"的兜底；`--profile` 模式会跳过所有缩放。
 5. 生成 `body_noimg.md`：每张图替换为 `[[IMG_n]]` 占位符，公式 `$...$` 原样保留；
 6. 生成 `manifest.json`：slot → 本地缩放图路径、zoom、原始/显示尺寸的映射。
 
 运行后核对控制台 `PREPARE_SUMMARY`：`failed` 应为 0；逐行确认带 zoom 的图 display 值符合预期（如 zoom:25% 的 1921px 图 → 480px），超大无标注图 → 1600px。
 
-**图片居中无需额外处理**：知乎发布后会把每张图包进 `<figure>` 并自动水平居中（含小于栏宽的图），已实测，不要为了居中往正文注入 HTML/CSS（Draft.js 不会持久保留，还可能破坏编辑器）。
+**图片居中无需额外处理**：知乎发布后会把每张图包进 `<figure>` 并自动水平居中（含小于栏宽的图），已在多篇历史文章与新文章上实测，不要为了居中往正文注入 HTML/CSS（Draft.js 不会持久保留，还可能破坏编辑器）。
 
 ### Step 2 — 发布：填标题 + 粘正文 + 传图
 ```bash
@@ -64,11 +64,17 @@ node publish.js --bundle "<bundle_dir>" [--profile <dir>] [--draft <url>] [--aut
 ### Step 3 — 验证
 - 截图 `<bundle>/draft_verify.png`（发布前）与 `after_publish.png`（发布后）。
 - 用 WebFetch 打开最终 URL，确认公网可访问、标题/正文/公式正常。
+- **验证前先释放 profile**：`publish.js --auto-publish` 结尾会停住浏览器（`LEAVING_BROWSER_OPEN`），占用 profile。跑验证前先结束那个发布进程（TaskStop / Ctrl+C），否则同一 profile 被锁可能导致验证脚本起不来或抓到空页。
 - **图片必须逐张验证**（WebFetch 数不了 img）：用 `verify_public.js` 滚动整篇公网文章，检查每张 img 的 `naturalWidth>0`：
   ```bash
   node verify_public.js "<最终文章URL>"    # 输出 totalImgs / loaded / broken / uploadFailText
   ```
   健康：`broken: []`、`uploadFailText: 0`、`loaded == totalImgs`。若编辑页需排查，用 `node diagnose.js "<edit_url>"` 看哪个 figure 含"上传失败"。
+- **⚠️ verify 必须用与 publish 相同的登录 profile**：`verify_public.js` 默认读 skill 目录下 `zhihu_profile`（常不存在 → 未登录 → 抓到空页，表现为 `title:""`、`totalImgs:0`、看似"全失败"，实为误判）。若发布时用了 `--profile <dir>`（如复用别处的已登录目录），验证时务必用环境变量指向同一目录：
+  ```bash
+  ZHIHU_PROFILE="<发布用的profile目录>" node verify_public.js "<最终文章URL>"
+  ```
+  返回 `totalImgs:0` + 空标题时，第一反应就是检查 profile 是否一致，别急着判定图片上传失败。
 - 报告最终文章 URL 给用户。
 
 ## 图片缩放保持（本 skill 的关键约定）
