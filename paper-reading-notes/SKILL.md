@@ -15,6 +15,7 @@ agent_created: true
 ## 用户偏好（来自长期实践，默认遵守）
 
 - "要求同上" = 爬 TeX 源码 + 原文截图配图 + **只输出 Markdown**（删掉多余的 HTML 与构建脚本）。
+- **图片下方不要写来源注记**：不要出现"截自论文原文 Table N""截自论文 TeX 源文件""（原文 Fig. N）"之类的说明文字。图片全是原文截图这件事是默认前提，无需逐张声明。用 `![简短图注](figures/xxx.png)` 的 alt 文本说明内容即可（如 `![原文 Table 2：主仿真结果](...)`），但图片正下方不要再加一行"截自……"。
 - **实验结果表格一律直接截原文表格，不要自创 Markdown 表格**：无论结果表、消融表还是对比表，都从原文 PDF/TeX 渲染成图（如 `table1_main_results.png`）再插入笔记，保持排版与数字原样。这是用户明确要求，别图省事用 `| a | b |` 重排。
 - 笔记里图片用相对路径 `figures/xxx.png`，**必须与生成脚本的输出文件名一一对应**（曾因 `fig13_baseline_comp` vs `_compare` 拼写不一致出错，产出后务必核对）。
 - 关键公式讲解要"细致到能教会别人"：用户会反复要求把某个公式/概念讲得更细。见下方协议，务必一次做到位。
@@ -74,7 +75,7 @@ mkdir -p source/tex && tar -xf source/<slug>_source.tar -C source/tex
 2. **正文页里的表格**（多数情况，表格直接排在 `main.tex`/section 的 `\begin{table}` 里）：从**论文 PDF** 定位表格所在页，用 PyMuPDF 裁剪表格区域渲染。做法：先用 `page.search_for("Table 1")` 找到表题位置，取该页面 `page.get_pixmap(matrix=mat, clip=表格矩形)`；裁剪框给不准时宁可整页截图（见 `scripts/render_figures.py` 的 `TABLES`/`TABLE_PAGES` 用法）。**务必在 PDF 上目视确认截到的是完整表格、没有被分页切断**。
 3. 源码 `tables/*.tex` 只是用来理解表格内容与选表，不作为笔记呈现形式。
 
-表格图片命名 `table1_xxx.png`、`table2_xxx.png`……与正文引用对应；正文用 `表 N` 指称时，图下注明"（截自论文原文 Table N）"。**绝不**用 `| a | b |` 语法把实验数据重排成 Markdown 表。
+表格图片命名 `table1_xxx.png`、`table2_xxx.png`……与正文引用对应。图片下方**不要**加"截自论文原文 Table N"之类的注记（见用户偏好）。**绝不**用 `| a | b |` 语法把实验数据重排成 Markdown 表。
 
 ### Step 4 — 规划笔记结构
 
@@ -89,7 +90,7 @@ mkdir -p source/tex && tar -xf source/<slug>_source.tar -C source/tex
 8. 相关演进（若是系列论文，加时间线与技术主线对比）
 9. 开放问题
 
-配图 6–15 张，每张承担一个论点，紧跟相关文字，下方注明"（截自论文 TeX 源文件 `figures/xxx.pdf`）"。
+配图 6–15 张，每张承担一个论点，紧跟相关文字。图片下方**不要**写"截自论文 TeX 源文件"之类注记，图注信息放在 `![...]` 的 alt 文本里即可。
 
 ### Step 5 — 写 Markdown 笔记
 
@@ -97,8 +98,8 @@ mkdir -p source/tex && tar -xf source/<slug>_source.tar -C source/tex
 - 面向"聪明但不熟悉这篇论文"的同行；先给反常识结论，再解释为什么。
 - 公式用 LaTeX（`$...$` / `$$...$$`），记号与论文一致。
 - 数字都带出处（Table N / Fig. N）。
-- **实验结果表格直接插原文截图**（`![原文 Table N](figures/tableN_xxx.png)`），下方注明"（截自论文原文 Table N）"；文字负责解读表格说明了什么，不复述整张表的数字。
-- **不要自创 Markdown 表格呈现实验数据**；若是完全为讲解自制的关系/演进对照表（不是论文原表，如 π 系列演进表），可用 Markdown 表格但需注明"整理自……"，与原文结果表区分开。
+- **实验结果表格直接插原文截图**（`![原文 Table N](figures/tableN_xxx.png)`），图片下方**不要**加"截自论文原文 Table N"注记；文字负责解读表格说明了什么，不复述整张表的数字。
+- **不要自创 Markdown 表格呈现实验数据**；若是完全为讲解自制的关系/演进对照表（不是论文原表，如 π 系列演进表），可用 Markdown 表格但需注明"整理自……"（这类讲解表仍保留来源说明，与原文结果表区分开）。
 
 ### Step 6 — 公式深讲协议（本 skill 的灵魂）
 
